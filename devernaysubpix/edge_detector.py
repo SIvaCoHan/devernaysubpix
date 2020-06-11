@@ -54,13 +54,16 @@ def compute_edge_points(partial_gradients, min_magnitude=0):
                 lamda = (a - c) / (2 * (a - 2 * b + c))
                 ex = x + lamda * theta_x
                 ey = y + lamda * theta_y
+                print(lamda, ex, ey, theta_x, theta_y)
                 edges.append(CurvePoint(ex, ey, valid=False))
     return np.asarray(edges)
 
+# TODO 需要准备 gx gy 梯度矩阵， edge 边缘点bool矩阵
 
 def chain_edge_points(edges, g):
     gx, gy = g
 
+    # TODO 优化 找neightbor不用每次都全部遍历，进行分区效果会更好。
     def neighborhood(p, max_dist):
         px, py = p.x, p.y
         for e in edges:
@@ -138,9 +141,21 @@ def thresholds_with_hysteresis(edges, links, grads, high_threshold, low_threshol
     return chains
 
 
+def compute_window_mean_and_var_strided(image, window_w, window_h):
+    w, h = image.shape
+    strided_image = np.lib.stride_tricks.as_strided(image,
+                                                    shape=[w - window_w + 1, h - window_h + 1, window_w, window_h],
+                                                    strides=image.strides + image.strides)
+    # important: trying to reshape image will create complete 4-dimensional compy
+    means = strided_image.mean(axis=(2, 3))
+    mean_squares = (strided_image ** 2).mean(axis=(2, 3))
+    maximums = strided_image.max(axis=(2, 3))
+
+    variations = mean_squares - means ** 2
+    return means, maximums, variations
+
+
 if __name__ == '__main__':
-    import numpy as np
-    from scipy.ndimage import filters
     import cv2
 
     pad = 20
@@ -149,10 +164,12 @@ if __name__ == '__main__':
     I[pad:circle.shape[0] + pad, pad:circle.shape[1] + pad] = circle
     I = I.astype(np.float32)
 
-    I[20, 20] = 0
-    I[10:13, 10:40] = 0
-
     grads = image_gradient(I, 2.0)
     edges = compute_edge_points(grads)
-    links = chain_edge_points(edges, grads)
-    chains = thresholds_with_hysteresis(edges, links, grads, 1, 0.1)
+    # for e in edges:
+    #     print(e.x, e.y)
+    # links = chain_edge_points(edges, grads)
+    # print(len(links))
+    # chains = thresholds_with_hysteresis(edges, links, grads, 1, 0.1)
+    # print(len(chains))
+    # print(chains[0])
