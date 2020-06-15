@@ -30,6 +30,7 @@ def compute_edge_points(partial_gradients, min_magnitude=0):
     def mag(y, x):
         return np.hypot(gx[y, x], gy[y, x])
 
+    ret_list = []
     for y in range(1, rows - 1):
         for x in range(1, cols - 1):
 
@@ -54,8 +55,9 @@ def compute_edge_points(partial_gradients, min_magnitude=0):
                 lamda = (a - c) / (2 * (a - 2 * b + c))
                 ex = x + lamda * theta_x
                 ey = y + lamda * theta_y
-                print(lamda, ex, ey, theta_x, theta_y)
+                ret_list.append((x, y, lamda))
                 edges.append(CurvePoint(ex, ey, valid=False))
+    print(ret_list)
     return np.asarray(edges)
 
 # TODO 需要准备 gx gy 梯度矩阵， edge 边缘点bool矩阵

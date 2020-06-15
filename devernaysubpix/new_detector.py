@@ -33,23 +33,23 @@ def compute_edge_points(grads, min_magnitude=0):
 
     pts = mag_valid & (theta_x | theta_y)
 
-    # TODO 这里的坐标我有可能弄反了, 稍后找一个非对称图形来看看
-    # TODO 目标，我已经取得了全部B的坐标，而后再取得A，C的offset，就饿可以得到A，C的坐标
-    # TODO 然后从mag里面分别提取 A， B， C，形成三个np.array 即可算出全部的lambda
+    # TODO edge point取对了，但是上和左的mag取错了，需要仔细检查一下坐标
+    # TODO 为啥x, y 是反的?
     idx_b = np.transpose(pts.nonzero())
+    y = theta_x[idx_b[:, 0], idx_b[:, 1]]
+    x = theta_y[idx_b[:, 0], idx_b[:, 1]]
+    idx_a = np.column_stack((idx_b[:, 0] - x, idx_b[:, 1] - y))
+    idx_c = np.column_stack((idx_b[:, 0] + x, idx_b[:, 1] + y))
 
-    # idx_a = idx_b - np.transpose(theta_x[pts], theta_y[pts])
-    # idx_c = idx_b + np.transpose(theta_x[pts], theta_y[pts])
-    # print(idx_b)
-    # idx_c = 1
+    mag_a = mag[idx_a[:, 0], idx_a[:, 1]]
+    mag_b = mag[idx_b[:, 0], idx_b[:, 1]]
+    mag_c = mag[idx_c[:, 0], idx_c[:, 1]]
+    lamda = (mag_a - mag_c) / (2 * (mag_a - 2 * mag_b + mag_c))
 
-
-
-    # 使用3*3的window 检查center mag > min_mag
-    # 上 下 左 右 分别 移动一个位置然后去减，得到四个bool 矩阵
-    # 上下 / 左右 分别判断，得到m
-    # gx - gy 还得算一次，计算方向性
-    print(np.count_nonzero(pts))
+    pts_x = idx_b[:, 0] - lamda * x
+    pts_y = idx_b[:, 1] - lamda * y
+    pts = np.column_stack((pts_x, pts_y))
+    # TODO 数据拿到了，想办法构建KDTree
     return pts
 
 
@@ -57,9 +57,9 @@ if __name__ == '__main__':
     import cv2
 
     pad = 20
-    circle = cv2.imread("./kreis.png", 0)
+    circle = cv2.imread("./2018112101.jpg", 0)
     I = np.zeros((circle.shape[0] + 2 * pad, circle.shape[1] + 2 * pad), dtype=np.uint8) + 255
-    I[pad-5:circle.shape[0] + pad -5, pad-5:circle.shape[1] + pad -5] = circle
+    I[pad:circle.shape[0] + pad, pad:circle.shape[1] + pad] = circle
     I = I.astype(np.float32)
 
     grads = image_gradient(I, 2.0)
