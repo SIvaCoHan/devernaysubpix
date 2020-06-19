@@ -57,8 +57,8 @@ def compute_edge_points(partial_gradients, min_magnitude=0):
                 ey = y + lamda * theta_y
                 ret_list.append((x, y, lamda))
                 edges.append(CurvePoint(ex, ey, valid=False))
-    print(ret_list)
     return np.asarray(edges)
+
 
 # TODO 需要准备 gx gy 梯度矩阵， edge 边缘点bool矩阵
 
@@ -70,7 +70,8 @@ def chain_edge_points(edges, g):
         px, py = p.x, p.y
         for e in edges:
             ex, ey = e.x, e.y
-            if abs(ex - px) <= max_dist and abs(ey - py) <= max_dist:
+            # if abs(ex - px) <= max_dist and abs(ey - py) <= max_dist:
+            if ((ex - px) ** 2 + (ey - py) ** 2) <= max_dist ** 2:
                 yield e
 
     def gval(p):
@@ -91,14 +92,14 @@ def chain_edge_points(edges, g):
 
     links = bidict()
     for e in edges:
-        nhood = [ n for n in neighborhood(e, 2) if np.dot(gval(e), gval(n)) > 0]
+        nhood = [n for n in neighborhood(e, 2) if np.dot(gval(e), gval(n)) > 0]
         nf = [n for n in nhood if np.dot(envec(e, n), perp(gval(e))) > 0]
         nb = [n for n in nhood if np.dot(envec(e, n), perp(gval(e))) < 0]
 
         if nf:
             f_idx = np.argmin([dist(e, n) for n in nf])
             f = nf[f_idx]
-            if f not in links.inv or dist(e,f) < dist(links.inv[f], f):
+            if f not in links.inv or dist(e, f) < dist(links.inv[f], f):
                 if f in links.inv: del links.inv[f]
                 if e in links: del links[e]
                 links[e] = f
@@ -143,20 +144,6 @@ def thresholds_with_hysteresis(edges, links, grads, high_threshold, low_threshol
     return chains
 
 
-def compute_window_mean_and_var_strided(image, window_w, window_h):
-    w, h = image.shape
-    strided_image = np.lib.stride_tricks.as_strided(image,
-                                                    shape=[w - window_w + 1, h - window_h + 1, window_w, window_h],
-                                                    strides=image.strides + image.strides)
-    # important: trying to reshape image will create complete 4-dimensional compy
-    means = strided_image.mean(axis=(2, 3))
-    mean_squares = (strided_image ** 2).mean(axis=(2, 3))
-    maximums = strided_image.max(axis=(2, 3))
-
-    variations = mean_squares - means ** 2
-    return means, maximums, variations
-
-
 if __name__ == '__main__':
     import cv2
 
@@ -170,8 +157,8 @@ if __name__ == '__main__':
     edges = compute_edge_points(grads)
     # for e in edges:
     #     print(e.x, e.y)
-    # links = chain_edge_points(edges, grads)
-    # print(len(links))
+    links = chain_edge_points(edges, grads)
+    print(len(links))
     # chains = thresholds_with_hysteresis(edges, links, grads, 1, 0.1)
     # print(len(chains))
     # print(chains[0])
