@@ -55,8 +55,10 @@ def compute_edge_points(partial_gradients, min_magnitude=0):
                 lamda = (a - c) / (2 * (a - 2 * b + c))
                 ex = x + lamda * theta_x
                 ey = y + lamda * theta_y
-                ret_list.append((x, y, lamda))
+                ret_list.append((x, y))
                 edges.append(CurvePoint(ex, ey, valid=False))
+    # print(ret_list)
+    # print([(e.x, e.y) for e in edges])
     return np.asarray(edges)
 
 
@@ -146,6 +148,7 @@ def thresholds_with_hysteresis(edges, links, grads, high_threshold, low_threshol
 
 if __name__ == '__main__':
     import cv2
+    from matplotlib import pyplot as plt
 
     pad = 20
     circle = cv2.imread("./kreis.png", 0)
@@ -155,10 +158,13 @@ if __name__ == '__main__':
 
     grads = image_gradient(I, 2.0)
     edges = compute_edge_points(grads)
-    # for e in edges:
-    #     print(e.x, e.y)
-    links = chain_edge_points(edges, grads)
-    print(len(links))
-    # chains = thresholds_with_hysteresis(edges, links, grads, 1, 0.1)
-    # print(len(chains))
-    # print(chains[0])
+
+
+    grads = image_gradient(I, 2.0)
+    edgels = compute_edge_points(grads)
+    xx = [e.x for e in edgels]
+    yy = [e.y for e in edgels]
+    plt.figure(figsize=(10, 10))
+    plt.imshow(I, cmap='gray')
+    plt.plot(yy, xx, 'or', ms=3, mew=3)
+    plt.show()
